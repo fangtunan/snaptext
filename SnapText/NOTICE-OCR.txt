@@ -1,0 +1,34 @@
+拾字 · SnapText — 高精度 OCR 组件声明
+
+本程序包含以下第三方组件和模型：
+
+1. RapidOcrNet 4.2.0
+   Project: https://github.com/BobLd/RapidOcrNet
+   License: Apache-2.0
+   Copyright: BobLd, RapidOCR contributors
+
+2. PP-OCRv5 mobile detection / classification / recognition models
+   Source: PaddleOCR / RapidOCR
+   Project: https://github.com/PaddlePaddle/PaddleOCR
+   License: Apache-2.0
+   The recognition model and dictionary are redistributed via the
+   pdfmarkdown-ppocrv5-models npm package (Apache-2.0).
+
+3. Microsoft ONNX Runtime 1.29.0
+   Project: https://github.com/microsoft/onnxruntime
+   License: MIT
+
+4. SkiaSharp 3.119.1
+   Project: https://github.com/mono/SkiaSharp
+   License: MIT
+
+5. Clipper2 2.0.0
+   Project: https://github.com/AngusJohnson/Clipper2
+   License: BSL-1.0
+
+6. System.Numerics.Tensors 9.0.0
+   Project: https://github.com/dotnet/runtime
+   License: MIT
+
+这些组件和模型仅用于本机离线文字识别，不会上传截图或识别结果。
+完整许可证文本可在上述项目仓库中查看。

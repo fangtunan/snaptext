@@ -1,0 +1,86 @@
+name: Build SnapText
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      VERSION: 1.1.0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore .\SnapText\SnapText.csproj
+
+      - name: Publish self-contained app
+        shell: pwsh
+        run: |
+          dotnet publish .\SnapText\SnapText.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:DebugType=None `
+            -p:DebugSymbols=false `
+            -o .\release\SnapText
+          if ($LASTEXITCODE -ne 0) { throw "publish failed" }
+
+      - name: Add docs and sample files
+        shell: pwsh
+        run: |
+          Copy-Item README.md, LICENSE, PRIVACY.md, CHANGELOG.md, NOTICE-OCR.txt .\release\SnapText\ -Force
+          Copy-Item docs, samples, tests .\release\SnapText\ -Recurse -Force
+
+      - name: Smoke test high-accuracy OCR
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:TEMP "snaptext-ci-result.txt"
+          Remove-Item $out, "$out.meta.txt" -ErrorAction SilentlyContinue
+          & .\release\SnapText\SnapText.exe --ocr .\release\SnapText\samples\mixed.png $out zh accurate
+          if ($LASTEXITCODE -ne 0) { throw "OCR smoke test failed" }
+          $text = Get-Content $out -Raw -Encoding UTF8
+          if ($text -notmatch '屏幕') { throw "High-accuracy OCR did not recognize 屏幕: $text" }
+          Write-Host $text
+
+      - name: Create portable ZIP and checksum
+        shell: pwsh
+        run: |
+          $zip = "SnapText-$env:VERSION-win-x64.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path .\release\SnapText\* -DestinationPath $zip -CompressionLevel Optimal
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $zip" | Set-Content SHA256SUMS.txt -Encoding ASCII
+          Get-Item $zip | Select-Object Name,Length
+          Get-Content SHA256SUMS.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SnapText-win-x64
+          path: |
+            SnapText-1.1.0-win-x64.zip
+            SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            SnapText-1.1.0-win-x64.zip
+            SHA256SUMS.txt

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>拾字 · SnapText — 本地中英文截图 OCR</title>
+  <style>
+    :root { color-scheme: light; --primary:#6c5ce7; --text:#1f2430; --muted:#697089; --bg:#f6f7fb; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:"Microsoft YaHei UI","Segoe UI",sans-serif; color:var(--text); background:var(--bg); line-height:1.7; }
+    main { max-width: 980px; margin: 0 auto; padding: 48px 24px 80px; }
+    h1 { font-size: 44px; margin: 0 0 8px; letter-spacing: 2px; }
+    .tag { color: var(--muted); font-size: 18px; margin-bottom: 28px; }
+    .card { background: #fff; border: 1px solid #e5e8f2; border-radius: 18px; padding: 24px; box-shadow: 0 8px 30px rgba(37,42,70,.06); }
+    img { width: 100%; height: auto; border-radius: 12px; border: 1px solid #e5e8f2; display:block; }
+    .actions { display:flex; flex-wrap:wrap; gap:12px; margin:24px 0; }
+    a.button { display:inline-block; padding:12px 20px; border-radius:999px; text-decoration:none; font-weight:700; }
+    a.primary { background:var(--primary); color:#fff; }
+    a.secondary { background:#fff; color:var(--primary); border:1px solid #d8d2fb; }
+    h2 { font-size:22px; margin-top:32px; }
+    ul { padding-left: 22px; }
+    code { background:#f0f1f7; padding:2px 6px; border-radius:6px; }
+    footer { margin-top:40px; color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>拾字 · SnapText</h1>
+  <div class="tag">Windows 本地截图 / 图片中英文 OCR · PP-OCRv5 高精度模式</div>
+
+  <div class="actions">
+    <a class="button primary" href="https://github.com/fangtunan/snaptext/releases/latest">下载最新版本</a>
+    <a class="button secondary" href="https://github.com/fangtunan/snaptext">GitHub 仓库</a>
+    <a class="button secondary" href="privacy.html">隐私政策</a>
+  </div>
+
+  <div class="card">
+    <img src="screenshot.png" alt="拾字 · SnapText 界面截图">
+  </div>
+
+  <h2>功能</h2>
+  <ul>
+    <li>全局快捷键 <code>Ctrl+Alt+S</code> 截图取字</li>
+    <li>拖动框选，或单击选择整个窗口</li>
+    <li>按住 <code>Shift</code> 连续框选多个区域，按框选顺序识别</li>
+    <li>PP-OCRv5 本地高精度中英文识别，也可切换 Windows OCR 快速模式</li>
+    <li>支持打开图片、拖入图片、读取剪贴板图片</li>
+    <li>识别结果可编辑、复制；关闭窗口后驻留托盘</li>
+  </ul>
+
+  <h2>隐私</h2>
+  <p>截图、图片和识别结果全部在本地处理，不上传任何服务器。详见 <a href="privacy.html">隐私政策</a>。</p>
+
+  <h2>环境</h2>
+  <ul>
+    <li>Windows 10 2004+ 或 Windows 11（x64）</li>
+    <li>Release 包为自包含版本，无需单独安装 .NET</li>
+    <li>高精度模型随包分发，可完全离线使用</li>
+  </ul>
+
+  <footer>
+    MIT License · 第三方组件许可见仓库中的 <code>NOTICE-OCR.txt</code>
+  </footer>
+</main>
+</body>
+</html>

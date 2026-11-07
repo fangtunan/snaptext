@@ -1,0 +1,29 @@
+# Build outputs
+dist/
+release/
+publish/
+**/bin/
+**/obj/
+.dotnet/
+
+# Local toolchains and downloaded packages
+tools/packages/
+tools/gh/
+tools/ocr-nuget/
+tools/ocr-proto/
+tools/sdk-parts/
+tools/sdk-layout/
+*.nupkg
+*.zip
+*.msi
+
+# User/IDE files
+*.user
+*.suo
+.vs/
+.idea/
+
+# Crash/log files
+*.log
+
+tools/build-app.rsp

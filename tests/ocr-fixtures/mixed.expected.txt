@@ -1,0 +1,7 @@
+截图 / 图片 → 中文 · English
+识别结果 · 拾字 SnapText
+这是一个用于测试屏幕文字识别的小样本。The quick brown fox jumps over the lazy dog.
+支持中文、English、数字 123456 和标点符号，例如：你好，世界！
+全局快捷键 Ctrl+Alt+Q，单击选择窗口，拖动框选区域。
+本地识别 · 不上传 · OCR 0.42 秒
+Windows 11 设置 > 时间和语言 > 语言和区域
