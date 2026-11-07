@@ -52,7 +52,16 @@ jobs:
           $out = Join-Path $env:TEMP "snaptext-ci-result.txt"
           Remove-Item $out, "$out.meta.txt" -ErrorAction SilentlyContinue
           & .\release\SnapText\SnapText.exe --ocr .\release\SnapText\samples\mixed.png $out zh accurate
-          if ($LASTEXITCODE -ne 0) { throw "OCR smoke test failed" }
+          $code = $LASTEXITCODE
+          if ($code -ne 0) {
+            Write-Host "OCR exit code: $code"
+            if (Test-Path $out) { Get-Content $out -Raw -Encoding UTF8 }
+            if (Test-Path "$out.meta.txt") { Get-Content "$out.meta.txt" -Raw -Encoding UTF8 }
+            $log = Join-Path $env:LOCALAPPDATA "SnapText\snaptext.log"
+            if (Test-Path $log) { Get-Content $log -Raw -Encoding UTF8 }
+            Get-ChildItem .\release\SnapText\models\ppocrv5 | Select-Object Name,Length
+            throw "OCR smoke test failed"
+          }
           $text = Get-Content $out -Raw -Encoding UTF8
           if ($text -notmatch '屏幕') { throw "High-accuracy OCR did not recognize 屏幕: $text" }
           Write-Host $text
