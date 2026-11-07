@@ -51,8 +51,10 @@ jobs:
         run: |
           $out = Join-Path $env:TEMP "snaptext-ci-result.txt"
           Remove-Item $out, "$out.meta.txt" -ErrorAction SilentlyContinue
-          & .\release\SnapText\SnapText.exe --ocr .\release\SnapText\samples\mixed.png $out zh accurate
-          $code = $LASTEXITCODE
+          $exe = (Resolve-Path .\release\SnapText\SnapText.exe).Path
+          $image = (Resolve-Path .\release\SnapText\samples\mixed.png).Path
+          $proc = Start-Process -FilePath $exe -ArgumentList @('--ocr', $image, $out, 'zh', 'accurate') -Wait -PassThru
+          $code = $proc.ExitCode
           if ($code -ne 0) {
             Write-Host "OCR exit code: $code"
             if (Test-Path $out) { Get-Content $out -Raw -Encoding UTF8 }
