@@ -27,3 +27,6 @@ tools/sdk-layout/
 *.log
 
 tools/build-app.rsp
+
+tools/release-check/
+tools/ci-artifact/
