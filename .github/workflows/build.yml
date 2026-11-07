@@ -42,8 +42,9 @@ jobs:
       - name: Add docs and sample files
         shell: pwsh
         run: |
-          Copy-Item README.md, LICENSE, PRIVACY.md, CHANGELOG.md, NOTICE-OCR.txt .\release\SnapText\ -Force
-          Copy-Item docs, samples, tests .\release\SnapText\ -Recurse -Force
+          Copy-Item README.md, LICENSE, PRIVACY.md, CHANGELOG.md .\release\SnapText\ -Force
+          Copy-Item .\SnapText\NOTICE-OCR.txt .\release\SnapText\ -Force
+          Copy-Item -Path @('docs', 'samples', 'tests') -Destination .\release\SnapText\ -Recurse -Force
 
       - name: Smoke test high-accuracy OCR
         shell: pwsh
