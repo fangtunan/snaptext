@@ -43,6 +43,7 @@ internal sealed class MainForm : Form
     private readonly TextBox _translationBox;
     private readonly Label _translationPlaceholder;
     private readonly Panel _verticalDivider;
+    private readonly DataGridView _bilingualGrid;
     private readonly StatusDot _statusDot;
     private readonly Label _statusLabel;
     private readonly Label _metaLabel;
@@ -249,8 +250,73 @@ internal sealed class MainForm : Form
             Visible = false
         };
         _verticalDivider = new Panel { BackColor = Theme.Border, Visible = false };
+        _bilingualGrid = new DataGridView
+        {
+            AllowUserToAddRows = false,
+            AllowUserToDeleteRows = false,
+            AllowUserToOrderColumns = false,
+            AllowUserToResizeColumns = false,
+            AllowUserToResizeRows = false,
+            AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+            AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders,
+            BackgroundColor = Color.White,
+            BorderStyle = BorderStyle.None,
+            CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+            ClipboardCopyMode = DataGridViewClipboardCopyMode.EnableWithoutHeaderText,
+            ColumnHeadersVisible = false,
+            GridColor = Theme.Border,
+            MultiSelect = true,
+            ReadOnly = true,
+            RowHeadersVisible = false,
+            RowTemplate = { Height = S(34) },
+            ScrollBars = ScrollBars.Vertical,
+            SelectionMode = DataGridViewSelectionMode.CellSelect,
+            Visible = false
+        };
+        _bilingualGrid.DefaultCellStyle = new DataGridViewCellStyle
+        {
+            BackColor = Color.White,
+            ForeColor = Theme.Text,
+            SelectionBackColor = Color.FromArgb(245, 243, 255),
+            SelectionForeColor = Theme.Text,
+            WrapMode = DataGridViewTriState.True,
+            Padding = new Padding(S(7), S(5), S(7), S(5)),
+            Font = Theme.UiFont(10.8f)
+        };
+        var originalColumn = new DataGridViewTextBoxColumn
+        {
+            Name = "Original",
+            FillWeight = 48,
+            ReadOnly = true,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        };
+        var dividerColumn = new DataGridViewTextBoxColumn
+        {
+            Name = "Divider",
+            Width = S(1),
+            MinimumWidth = S(1),
+            AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+            ReadOnly = true,
+            Resizable = DataGridViewTriState.False,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        };
+        dividerColumn.DefaultCellStyle = new DataGridViewCellStyle
+        {
+            BackColor = Theme.BorderStrong,
+            SelectionBackColor = Theme.BorderStrong,
+            Padding = new Padding(0)
+        };
+        var translationColumn = new DataGridViewTextBoxColumn
+        {
+            Name = "Translation",
+            FillWeight = 52,
+            ReadOnly = true,
+            SortMode = DataGridViewColumnSortMode.NotSortable
+        };
+        _bilingualGrid.Columns.AddRange(originalColumn, dividerColumn, translationColumn);
         _card.Controls.Add(_resultBox);
         _card.Controls.Add(_translationBox);
+        _card.Controls.Add(_bilingualGrid);
         _card.Controls.Add(_placeholder);
         _card.Controls.Add(_translationPlaceholder);
         _card.Controls.Add(_divider);
@@ -261,6 +327,10 @@ internal sealed class MainForm : Form
         _card.Controls.Add(_translationTitle);
         _placeholder.BringToFront();
         _translationPlaceholder.BringToFront();
+        _resultTitle.BringToFront();
+        _sourceLabel.BringToFront();
+        _charCount.BringToFront();
+        _translationTitle.BringToFront();
 
         _bottom = new Panel { BackColor = Theme.Background };
         _content.Controls.Add(_bottom);
@@ -638,9 +708,11 @@ internal sealed class MainForm : Form
     private void SetTranslationVisible(bool visible)
     {
         _translationTitle.Visible = visible;
-        _translationBox.Visible = visible;
-        _translationPlaceholder.Visible = visible && !_translationSucceeded && _translationBox.TextLength == 0;
-        _verticalDivider.Visible = visible;
+        _bilingualGrid.Visible = visible;
+        _resultBox.Visible = !visible;
+        _translationBox.Visible = false;
+        _translationPlaceholder.Visible = false;
+        _verticalDivider.Visible = false;
         _charCount.Visible = !visible;
         if (!visible)
         {
@@ -1000,8 +1072,7 @@ internal sealed class MainForm : Form
         if (_translateCheck.Checked)
         {
             _translationSucceeded = false;
-            _translationBox.Clear();
-            _translationHint = "正在识别…";
+            _bilingualGrid.Rows.Clear();
             _translationTitle.Text = "译文";
             SetTranslationVisible(true);
             UpdatePlaceholder();
@@ -1145,8 +1216,7 @@ internal sealed class MainForm : Form
     {
         string combined = JoinTexts(texts);
         _translationSucceeded = false;
-        _translationBox.Clear();
-        _translationHint = _translateCheck.Checked ? "正在识别…" : "译文将在这里显示";
+        _bilingualGrid.Rows.Clear();
         _translationTitle.Text = "译文";
         SetTranslationVisible(_translateCheck.Checked);
         _resultBox.Text = combined;
@@ -1169,7 +1239,6 @@ internal sealed class MainForm : Form
         {
             _metaLabel.Text = baseMeta;
             _emptyHint = "未识别到文字\n\n可以尝试放大图片，或重新框选更清晰的区域。";
-            _translationHint = "未识别到文字";
             SetStatus("未识别到文字", Theme.Warning);
             ResetAccurateAvailability();
             UpdatePlaceholder();
@@ -1177,29 +1246,37 @@ internal sealed class MainForm : Form
             return;
         }
 
-        TranslationDirection? direction = _translateCheck.Checked
-            ? TranslationService.DetectDirection(combined)
-            : null;
+        if (!_translateCheck.Checked)
+        {
+            _metaLabel.Text = baseMeta;
+            int nonEmpty = texts.Count(text => text.Length > 0);
+            SetStatus(total > 1
+                ? $"已识别 {nonEmpty}/{total} 个区域"
+                : "识别完成", Theme.Success);
+            ResetAccurateAvailability();
+            UpdatePlaceholder();
+            OnResultTextChanged();
+            return;
+        }
+
+        string[] lines = combined
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Split('\n');
+        foreach (string line in lines)
+        {
+            _bilingualGrid.Rows.Add(line, string.Empty, string.Empty);
+        }
+
+        _bilingualGrid.ClearSelection();
+
+        TranslationDirection? direction = TranslationService.DetectDirection(combined);
         if (direction is null)
         {
-            _translationHint = "未检测到可翻译的中英文";
-            _metaLabel.Text = _translateCheck.Checked
-                ? $"{baseMeta} · 无可翻译文字"
-                : baseMeta;
-            int nonEmpty = texts.Count(text => text.Length > 0);
-            if (_translateCheck.Checked)
-            {
-                SetStatus(total > 1
-                    ? $"已识别 {nonEmpty}/{total} 个区域 · 未检测到可翻译文字"
-                    : "未检测到可翻译的中英文", Theme.Warning);
-            }
-            else
-            {
-                SetStatus(total > 1
-                    ? $"已识别 {nonEmpty}/{total} 个区域"
-                    : "识别完成", Theme.Success);
-            }
-
+            SetStatus(total > 1
+                ? $"已识别 {total} 个区域 · 未检测到可翻译文字"
+                : "未检测到可翻译的中英文", Theme.Warning);
+            _metaLabel.Text = $"{baseMeta} · 无可翻译文字";
             ResetAccurateAvailability();
             UpdatePlaceholder();
             OnResultTextChanged();
@@ -1207,43 +1284,67 @@ internal sealed class MainForm : Form
         }
 
         TranslationDirectionInfo info = TranslationService.Describe(direction.Value);
-        _translationHint = "正在翻译…";
         _translationTitle.Text = $"译文 · {info.Label}";
-        UpdatePlaceholder();
         SetStatus($"正在翻译（{info.ShortLabel}）…", Theme.Primary);
         _statusDot.DotColor = Theme.Primary;
-        _metaLabel.Text = $"在线翻译 · {info.ShortLabel}…";
 
         var translationWatch = Stopwatch.StartNew();
+        int translatedCount = 0;
+        int failedCount = 0;
         try
         {
-            string translated = await TranslationService.TranslateAsync(
-                combined, direction.Value, cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
-            translationWatch.Stop();
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(lines[i]))
+                {
+                    continue;
+                }
 
-            _translationSucceeded = true;
-            _translationBox.Text = translated;
-            _translationBox.SelectionStart = 0;
-            _translationBox.SelectionLength = 0;
-            _translationBox.ScrollToCaret();
-            _metaLabel.Text =
-                $"{engine}{confidence} · {info.ShortLabel} · {FormatDuration(duration + translationWatch.Elapsed)}";
-            SetStatus("翻译完成", Theme.Success);
+                cancellationToken.ThrowIfCancellationRequested();
+                _statusLabel.Text = $"正在翻译第 {i + 1}/{lines.Length} 行…";
+                _metaLabel.Text = $"在线翻译 · {info.ShortLabel} · {i + 1}/{lines.Length}";
+                try
+                {
+                    string translated = await TranslationService.TranslateLineAsync(
+                        lines[i], direction.Value, cancellationToken);
+                    _bilingualGrid.Rows[i].Cells[2].Value = translated;
+                    translatedCount++;
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    AppLog.Write("在线翻译单行失败", ex);
+                    _bilingualGrid.Rows[i].Cells[2].Value = "翻译失败";
+                    failedCount++;
+                }
+
+                _bilingualGrid.Invalidate();
+            }
+
+            translationWatch.Stop();
+            _bilingualGrid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);
+            _bilingualGrid.ClearSelection();
+            if (translatedCount > 0)
+            {
+                _translationSucceeded = true;
+                _metaLabel.Text =
+                    $"{engine}{confidence} · {info.ShortLabel} · {FormatDuration(duration + translationWatch.Elapsed)}";
+                SetStatus(failedCount == 0
+                    ? "翻译完成"
+                    : $"翻译完成，{failedCount} 行失败", failedCount == 0 ? Theme.Success : Theme.Warning);
+            }
+            else
+            {
+                _metaLabel.Text = "在线翻译失败 · 已保留原文";
+                SetStatus("翻译失败，已保留原文", Theme.Warning);
+            }
         }
         catch (OperationCanceledException)
         {
             throw;
-        }
-        catch (Exception ex)
-        {
-            AppLog.Write("在线翻译失败", ex);
-            translationWatch.Stop();
-            _translationSucceeded = false;
-            _translationBox.Text = "翻译失败：" + ex.Message;
-            _translationTitle.Text = "译文 · 失败";
-            _metaLabel.Text = "在线翻译失败 · 已保留原文";
-            SetStatus("翻译失败，已保留原文", Theme.Warning);
         }
 
         ResetAccurateAvailability();
@@ -1281,28 +1382,40 @@ internal sealed class MainForm : Form
     {
         bool split = _translateCheck.Checked;
         _placeholder.Visible = _resultBox.TextLength == 0;
-        _translationPlaceholder.Text = _translationHint;
-        _translationPlaceholder.Visible = split && !_translationSucceeded && _translationBox.TextLength == 0;
+        _translationPlaceholder.Visible = false;
+        bool hasTranslation = split && HasTranslatedRows();
         _copyButton.Text = !split
             ? "复制全文"
-            : (_translationSucceeded ? "复制译文" : "复制原文");
+            : (hasTranslation ? "复制译文" : "复制原文");
         _copyButton.Enabled = !_card.Busy &&
-                              (_resultBox.TextLength > 0 ||
-                               (split && _translationSucceeded && _translationBox.TextLength > 0));
-        _clearButton.Enabled = _resultBox.TextLength > 0 || _translationBox.TextLength > 0 || _lastImages.Count > 0;
+                              (_resultBox.TextLength > 0 || hasTranslation);
+        _clearButton.Enabled = _resultBox.TextLength > 0 ||
+                               (_bilingualGrid.Rows.Count > 0) ||
+                               _lastImages.Count > 0;
         _charCount.Text = split || _resultBox.TextLength == 0
             ? string.Empty
             : $"{_resultBox.TextLength:N0} 字符";
+    }
+
+    private bool HasTranslatedRows()
+    {
+        foreach (DataGridViewRow row in _bilingualGrid.Rows)
+        {
+            string value = row.Cells[2].Value?.ToString() ?? string.Empty;
+            if (value.Length > 0 && !value.StartsWith("翻译失败", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void UpdatePlaceholder()
     {
         _placeholder.Text = _emptyHint;
         _placeholder.Visible = _resultBox.TextLength == 0;
-        _translationPlaceholder.Text = _translationHint;
-        _translationPlaceholder.Visible = _translateCheck.Checked &&
-                                          !_translationSucceeded &&
-                                          _translationBox.TextLength == 0;
+        _translationPlaceholder.Visible = false;
     }
 
     private string BuildDefaultEmptyHint()
@@ -1313,10 +1426,31 @@ internal sealed class MainForm : Form
 
     private void CopyResult()
     {
-        bool copyTranslation = _translateCheck.Checked &&
-                               _translationSucceeded &&
-                               _translationBox.TextLength > 0;
-        string text = copyTranslation ? _translationBox.Text : _resultBox.Text;
+        bool copyTranslation = false;
+        string text;
+        if (_translateCheck.Checked && _bilingualGrid.Visible)
+        {
+            var translatedLines = _bilingualGrid.Rows
+                .Cast<DataGridViewRow>()
+                .Select(row => row.Cells[2].Value?.ToString() ?? string.Empty)
+                .Where(value => value.Length > 0 &&
+                                !value.StartsWith("翻译失败", StringComparison.Ordinal))
+                .ToList();
+            if (translatedLines.Count > 0)
+            {
+                text = string.Join(Environment.NewLine, translatedLines);
+                copyTranslation = true;
+            }
+            else
+            {
+                text = _resultBox.Text;
+            }
+        }
+        else
+        {
+            text = _resultBox.Text;
+        }
+
         if (text.Length == 0)
         {
             return;
@@ -1343,6 +1477,7 @@ internal sealed class MainForm : Form
         DisposeLastImages();
         _resultBox.Clear();
         _translationBox.Clear();
+        _bilingualGrid.Rows.Clear();
         _translationSucceeded = false;
         _translationHint = "译文将在这里显示";
         _translationTitle.Text = "译文";
@@ -1574,9 +1709,11 @@ internal sealed class MainForm : Form
         int top = S(15);
         int dividerY = S(45);
         bool split = _translateCheck.Checked;
+        _bilingualGrid.Visible = split;
+        _resultBox.Visible = !split;
+        _translationBox.Visible = false;
         _translationTitle.Visible = split;
-        _translationBox.Visible = split;
-        _verticalDivider.Visible = split;
+        _verticalDivider.Visible = false;
         _charCount.Visible = !split;
 
         _divider.SetBounds(left, dividerY, w - left * 2, 1);
@@ -1598,25 +1735,18 @@ internal sealed class MainForm : Form
         }
 
         int contentWidth = w - left * 2;
-        int gap = S(18);
-        int leftWidth = (int)(contentWidth * 0.48);
-        int rightX = left + leftWidth + gap;
-        int rightWidth = Math.Max(S(80), w - left - rightX);
         int textTop2 = dividerY + S(7);
         _sourceLabel.SetBounds(
             left + _resultTitle.PreferredWidth + S(10), top,
-            Math.Max(S(40), leftWidth - _resultTitle.PreferredWidth - S(18)), S(24));
-        _translationTitle.SetBounds(rightX, top, rightWidth, S(24));
-        _verticalDivider.SetBounds(rightX - gap / 2, dividerY + 1, 1, Math.Max(S(40), h - dividerY - S(12)));
-        _resultBox.SetBounds(left + S(2), textTop2, leftWidth - S(4),
+            Math.Max(S(40), contentWidth - _resultTitle.PreferredWidth - S(140)), S(24));
+        _translationTitle.SetBounds(left + contentWidth / 2 + S(14), top,
+            contentWidth / 2 - S(14), S(24));
+        _bilingualGrid.SetBounds(left, textTop2, contentWidth,
             Math.Max(S(40), h - textTop2 - S(12)));
-        _translationBox.SetBounds(rightX + S(2), textTop2, rightWidth - S(4),
-            Math.Max(S(40), h - textTop2 - S(12)));
-        _placeholder.SetBounds(left + S(5), textTop2 + S(6), leftWidth - S(10),
+        _placeholder.SetBounds(left + S(5), textTop2 + S(6), contentWidth - S(10),
             Math.Max(S(40), h - textTop2 - S(22)));
-        _translationPlaceholder.SetBounds(rightX + S(5), textTop2 + S(6), rightWidth - S(10),
-            Math.Max(S(40), h - textTop2 - S(22)));
-        _translationPlaceholder.Visible = !_translationSucceeded && _translationBox.TextLength == 0;
+        _placeholder.BringToFront();
+        _translationPlaceholder.Visible = false;
     }
 
     private void LayoutBottom()

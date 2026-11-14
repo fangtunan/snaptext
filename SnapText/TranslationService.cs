@@ -97,6 +97,28 @@ internal static class TranslationService
         return string.Join(Environment.NewLine + Environment.NewLine, outputBlocks);
     }
 
+    public static async Task<string> TranslateLineAsync(
+        string text,
+        TranslationDirection direction,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        TranslationDirectionInfo info = Describe(direction);
+        List<string> chunks = SplitLine(text.Trim(), MaxChunkLength);
+        var translatedParts = new List<string>(chunks.Count);
+        foreach (string chunk in chunks)
+        {
+            translatedParts.Add(await TranslateChunkAsync(chunk, info, cancellationToken).ConfigureAwait(false));
+            await Task.Delay(120, cancellationToken).ConfigureAwait(false);
+        }
+
+        return string.Join(" ", translatedParts);
+    }
+
     private static async Task<string> TranslateChunkAsync(
         string text,
         TranslationDirectionInfo info,
