@@ -32,7 +32,7 @@
 
 ## 使用方法
 
-从 [GitHub Releases](https://github.com/fangtunan/snaptext/releases/latest) 下载 `SnapText-1.2.1-win-x64.zip`，解压后运行 `SnapText.exe`。
+从 [GitHub Releases](https://github.com/fangtunan/snaptext/releases/latest) 下载 `SnapText-1.2.2-win-x64.zip`，解压后运行 `SnapText.exe`。
 
 > Release 包为自包含版本，无需单独安装 .NET。首次运行 SmartScreen 可能提示“未知发布者”，这是因为当前版本尚未购买代码签名证书。
 

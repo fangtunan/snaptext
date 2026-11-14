@@ -102,7 +102,9 @@ internal static class TranslationService
         TranslationDirectionInfo info,
         CancellationToken cancellationToken)
     {
-        string url = $"{Endpoint}?q={Uri.EscapeDataString(text)}&langpair={Uri.EscapeDataString(info.From)}%7C{Uri.EscapeDataString(info.To)}";
+        // Only use MyMemory's machine translation, not public translation-memory
+        // entries, which can contain unrelated or malicious matching sentences.
+        string url = $"{Endpoint}?q={Uri.EscapeDataString(text)}&langpair={Uri.EscapeDataString(info.From)}%7C{Uri.EscapeDataString(info.To)}&onlyprivate=1&mt=1";
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.ParseAdd("application/json");
         using HttpResponseMessage response = await Client.SendAsync(
