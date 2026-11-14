@@ -32,7 +32,7 @@
 
 ## 使用方法
 
-从 [GitHub Releases](https://github.com/fangtunan/snaptext/releases/latest) 下载 `SnapText-1.2.5-win-x64.zip`，解压后运行 `SnapText.exe`。
+从 [GitHub Releases](https://github.com/fangtunan/snaptext/releases/latest) 下载 `SnapText-1.2.6-win-x64.zip`，解压后运行 `SnapText.exe`。
 
 > Release 包为自包含版本，无需单独安装 .NET。首次运行 SmartScreen 可能提示“未知发布者”，这是因为当前版本尚未购买代码签名证书。
 
@@ -86,6 +86,7 @@
 - 开启后，自动检测识别结果的主要语言：中文为主时译为 English，英文为主时译为中文；
 - 窗口使用一个共享滚动条的双栏表格：左侧原文、右侧译文，逐行对齐，每行下方为浅灰色分隔线；
 - 双击任意单元格可编辑，编辑后的原文会同步覆盖当前识别结果，复制使用编辑后的内容；
+- 关闭翻译不会重新 OCR，会保留编辑后的原文；重新开启时直接翻译编辑后的内容；
 - 翻译服务为 MyMemory，免费额度有限，网络异常或额度用完时会保留原文并显示错误；
 - 首次启用会弹出确认框，说明识别文字会发送到 MyMemory；图片、截图不会上传。
 

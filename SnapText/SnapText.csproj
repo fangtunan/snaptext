@@ -14,8 +14,8 @@
     <Product>拾字</Product>
     <AssemblyTitle>拾字 · SnapText</AssemblyTitle>
     <Description>截图或图片，一键提取中文和英文文字</Description>
-    <Version>1.2.5</Version>
-    <FileVersion>1.2.5.0</FileVersion>
+    <Version>1.2.6</Version>
+    <FileVersion>1.2.6.0</FileVersion>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Platforms>AnyCPU;x64</Platforms>
     <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>

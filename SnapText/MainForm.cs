@@ -637,7 +637,7 @@ internal sealed class MainForm : Form
         }
     }
 
-    private void OnTranslateChanged()
+    private async void OnTranslateChanged()
     {
         if (_suppressTranslateChange)
         {
@@ -668,19 +668,79 @@ internal sealed class MainForm : Form
 
         _settings.TranslateEnabled = _translateCheck.Checked;
         _settings.Save();
+        _ocrCts?.Cancel();
+        _ocrCts?.Dispose();
+        _ocrCts = null;
+        _ocrGeneration++;
         ApplyTranslationChrome();
 
-        if (_lastImages.Count > 0)
+        if (!_translateCheck.Checked)
         {
-            _emptyHint = _translateCheck.Checked
-                ? "正在重新识别并翻译…"
-                : "正在重新识别…";
+            SetStatus("已关闭翻译模式", Theme.TextMuted);
+            OnResultTextChanged();
+            return;
+        }
+
+        if (_resultBox.TextLength > 0)
+        {
+            await TranslateCurrentTextAsync();
+        }
+        else if (_lastImages.Count > 0)
+        {
+            _emptyHint = "正在重新识别并翻译…";
             UpdatePlaceholder();
             _ = RunOcrAsync();
         }
         else
         {
-            ShowToast(_translateCheck.Checked ? "已开启翻译模式" : "已关闭翻译模式", Theme.Success);
+            ShowToast("已开启翻译模式", Theme.Success);
+        }
+    }
+
+    private async Task TranslateCurrentTextAsync()
+    {
+        string text = _resultBox.Text;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        _ocrCts?.Cancel();
+        _ocrCts?.Dispose();
+        var cts = new CancellationTokenSource();
+        _ocrCts = cts;
+        _card.Busy = true;
+        _copyButton.Enabled = false;
+        try
+        {
+            await ApplyOutcomesAsync(
+                new List<string> { text },
+                new List<string> { "已编辑" },
+                new List<string>(),
+                new List<float?>(),
+                TimeSpan.Zero,
+                1,
+                cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer request replaced this one.
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("翻译当前编辑内容失败", ex);
+            SetStatus("翻译失败，已保留编辑内容", Theme.Warning);
+        }
+        finally
+        {
+            if (ReferenceEquals(_ocrCts, cts))
+            {
+                _ocrCts = null;
+            }
+
+            cts.Dispose();
+            _card.Busy = false;
+            OnResultTextChanged();
         }
     }
 
