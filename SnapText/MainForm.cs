@@ -417,7 +417,7 @@ internal sealed class MainForm : Form
         _toolTip.SetToolTip(_copyButton, "复制当前结果（Ctrl+C）");
         _toolTip.SetToolTip(_clearButton, "清空当前结果");
         _toolTip.SetToolTip(_accurateCheck, OcrRouter.AccurateAvailable
-            ? "使用 PP-OCRv5 本地高精度模型；首次识别会稍慢，关闭则使用 Windows OCR 快速模式。"
+            ? "中文/混排使用 PP-OCRv5 本地模型；纯英文屏幕文字自动使用 Windows OCR。首次识别中文会稍慢。"
             : "未找到高精度模型，当前只能使用 Windows OCR。");
         _toolTip.SetToolTip(_translateCheck,
             "自动判断中英文方向并在线翻译；识别文字会发送到 MyMemory，图片不会上传。");

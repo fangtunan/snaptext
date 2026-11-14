@@ -344,5 +344,5 @@ internal static class OcrService
         return builder.ToString().Trim();
     }
 
-    private static bool ContainsCjk(string text) => CjkRegex.IsMatch(text);
+    internal static bool ContainsCjk(string text) => CjkRegex.IsMatch(text);
 }

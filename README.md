@@ -32,7 +32,7 @@
 
 ## 使用方法
 
-从 [GitHub Releases](https://github.com/fangtunan/snaptext/releases/latest) 下载 `SnapText-1.2.3-win-x64.zip`，解压后运行 `SnapText.exe`。
+从 [GitHub Releases](https://github.com/fangtunan/snaptext/releases/latest) 下载 `SnapText-1.2.4-win-x64.zip`，解压后运行 `SnapText.exe`。
 
 > Release 包为自包含版本，无需单独安装 .NET。首次运行 SmartScreen 可能提示“未知发布者”，这是因为当前版本尚未购买代码签名证书。
 
@@ -72,8 +72,9 @@
 
 底部的「高精度」复选框默认开启：
 
-- 高精度使用本地 PP-OCRv5 中英文模型，首次识别会加载模型，结果元信息会显示引擎、平均置信度和耗时；
-- 关闭后使用 Windows OCR 快速模式；
+- 中文和中英混排使用本地 PP-OCRv5 模型，首次识别会加载模型；
+- 纯英文屏幕文字自动使用 Windows OCR，速度更快，清晰截图通常更准确；
+- 关闭后统一使用 Windows OCR 快速模式；
 - 高精度模型文件缺失或加载失败时，会自动回退 Windows OCR，并在元信息中提示。
 
 高精度模式会随程序携带约 48 MB 的模型和 native 运行库；自包含 Release 体积会更大，具体以下载页显示为准。OCR 完全离线，不下载、不上传。
@@ -168,7 +169,7 @@
 ## 技术说明
 
 - .NET 8 + Windows Forms。
-- 高精度 OCR：PP-OCRv5 mobile（中文+英文）+ RapidOcrNet + ONNX Runtime，本地 CPU 推理。
+- 高精度 OCR：中文/中英混排使用 PP-OCRv5 mobile + RapidOcrNet + ONNX Runtime，本地 CPU 推理；纯英文屏幕文字自动使用 Windows OCR，避免宽图降采样导致漏字。
 - 快速/回退 OCR：`Windows.Media.Ocr`，中文使用 `zh-Hans-CN` 引擎，英文使用 `en-US` 引擎。
 - 翻译：按 CJK/拉丁字母数量判断主语言；通过 `api.mymemory.translated.net` 生成译文，OCR 与翻译解耦。
 - 截图：GDI 屏幕捕获 + 自绘全屏选择层，支持多显示器与高 DPI。
