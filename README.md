@@ -6,7 +6,7 @@
 
 一个专为 Windows 设计的轻量截图取字工具：从屏幕或图片中提取**中文 / 英文**文字，结果显示在窗口里，可直接编辑和复制。
 
-> 识别完全在本机完成，截图和图片不会上传到任何服务器。
+> OCR 识别完全在本机完成，截图和图片不会上传。**翻译模式需要联网**：开启后，识别出的文字会发送到 MyMemory 在线翻译服务，图片不会上传。
 
 [下载最新版本](https://github.com/fangtunan/snaptext/releases/latest) · [隐私政策](PRIVACY.md) · [更新日志](CHANGELOG.md)
 
@@ -25,13 +25,14 @@
   - 读取剪贴板里的图片（例如 `Win+Shift+S` 截图后）。
 - **中英文识别**：默认使用本地 PP-OCRv5 高精度模型，支持中文、英文以及中英混排；可切换回 Windows 快速 OCR。
 - **高精度 / 快速切换**：主窗口底部「高精度」复选框；高精度模式首次识别会加载模型，略慢但准确率明显更高。
+- **自动中英翻译**：打开「翻译」后，自动判断中文→English 或 English→中文，同时显示原文和译文。翻译需要联网，首次启用会明确提示文字会发送到 MyMemory。
 - **结果可编辑**：识别结果会显示在主窗口，可直接修改、全选、复制。
 - **托盘常驻**：关闭窗口只是隐藏到托盘，快捷键继续可用；从托盘菜单选择「退出拾字」才会完全退出。
 - **单实例**：重复启动会唤回已经打开的窗口。
 
 ## 使用方法
 
-从 [GitHub Releases](https://github.com/fangtunan/snaptext/releases/latest) 下载 `SnapText-1.1.0-win-x64.zip`，解压后运行 `SnapText.exe`。
+从 [GitHub Releases](https://github.com/fangtunan/snaptext/releases/latest) 下载 `SnapText-1.2.0-win-x64.zip`，解压后运行 `SnapText.exe`。
 
 > Release 包为自包含版本，无需单独安装 .NET。首次运行 SmartScreen 可能提示“未知发布者”，这是因为当前版本尚未购买代码签名证书。
 
@@ -75,13 +76,23 @@
 - 关闭后使用 Windows OCR 快速模式；
 - 高精度模型文件缺失或加载失败时，会自动回退 Windows OCR，并在元信息中提示。
 
-高精度模式会随程序携带约 48 MB 的模型和 native 运行库；自包含 Release 体积会更大，具体以下载页显示为准。完全离线，不下载、不上传。
+高精度模式会随程序携带约 48 MB 的模型和 native 运行库；自包含 Release 体积会更大，具体以下载页显示为准。OCR 完全离线，不下载、不上传。
+
+### 翻译模式
+
+主窗口底部的「翻译」复选框默认关闭：
+
+- 开启后，自动检测识别结果的主要语言：中文为主时译为 English，英文为主时译为中文；
+- 结果区同时显示「原文」和「译文」，不会覆盖原文；
+- 翻译服务为 MyMemory，免费额度有限，网络异常或额度用完时会保留原文并显示错误；
+- 首次启用会弹出确认框，说明识别文字会发送到 MyMemory；图片、截图不会上传。
 
 ## 环境要求
 
 - Windows 10 版本 2004（Build 19041）及以上，或 Windows 11。
-- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)（x64）。
+- 下载自包含 Release 时无需安装 .NET；源码构建需要 [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)。
 - 快速模式/回退模式需要已安装中文和/或英文的 Windows OCR 语言组件；高精度模式自带模型，不依赖系统 OCR 语言包。
+- 使用翻译模式需要能访问 `api.mymemory.translated.net` 的网络。
 
 检查 OCR 语言：
 
@@ -117,6 +128,14 @@
 
 参数依次为：输入图片、输出文本、语言（`auto` / `zh` / `en`）、精度（`accurate` / `fast`）。省略精度参数时使用 `fast`。结果写入 `result.txt`，元数据写入 `result.txt.meta.txt`。
 
+翻译也可以单独测试（会联网）：
+
+```powershell
+.\SnapText.exe --translate .\source.txt .\translated.txt
+```
+
+方向根据文本自动判断，元数据包含 `From` / `To` 和翻译服务名称。
+
 ## 常见问题
 
 **快捷键没有反应**
@@ -136,15 +155,22 @@
 
 首次使用需要加载约 20 MB 的 PP-OCRv5 模型，之后会复用已加载的引擎。高精度模式仍然完全离线。
 
+**翻译失败或提示额度用完**
+
+翻译模式使用 MyMemory 免费接口，受网络和每日额度限制。失败时会保留原文并显示错误；可以关闭「翻译」继续使用本地 OCR，或稍后重试。
+
 **是否会上传图片？**
 
-不会。高精度使用本地 PP-OCRv5/ONNX Runtime，快速模式使用 Windows 本地 OCR；都不联网、不上传。
+不会。高精度使用本地 PP-OCRv5/ONNX Runtime，快速模式使用 Windows 本地 OCR，截图和图片都不上传。
+
+翻译模式开启后，只有**识别出的文字**会发送到 MyMemory 在线翻译服务；图片、截图和剪贴板内容不会上传。详见 [PRIVACY.md](PRIVACY.md)。
 
 ## 技术说明
 
 - .NET 8 + Windows Forms。
 - 高精度 OCR：PP-OCRv5 mobile（中文+英文）+ RapidOcrNet + ONNX Runtime，本地 CPU 推理。
 - 快速/回退 OCR：`Windows.Media.Ocr`，中文使用 `zh-Hans-CN` 引擎，英文使用 `en-US` 引擎。
+- 翻译：按 CJK/拉丁字母数量判断主语言；通过 `api.mymemory.translated.net` 生成译文，OCR 与翻译解耦。
 - 截图：GDI 屏幕捕获 + 自绘全屏选择层，支持多显示器与高 DPI。
 - 通过单词边界框重建行内空格；高精度结果会保留 PP-OCR 的平均置信度。
 - 第三方组件和模型许可见 `NOTICE-OCR.txt`。
@@ -174,6 +200,7 @@ SnapText/
   OcrRouter.cs          快速/高精度引擎路由与回退
   OcrService.cs         Windows OCR 封装与文本整理
   PpOcrService.cs       PP-OCRv5 高精度 OCR
+  TranslationService.cs 中英方向检测与 MyMemory 在线翻译
   NativeMethods.cs      Win32 互操作
   models/ppocrv5/       PP-OCRv5 本地模型
   Controls/             自绘按钮、卡片、标题栏等
@@ -197,4 +224,6 @@ SnapText/
 
 ## 隐私
 
-所有 OCR 均在本机完成，不上传图片、截图或识别结果。详见 [PRIVACY.md](PRIVACY.md)。
+OCR 和截图均在本机完成，不上传图片、截图或识别结果。
+
+翻译模式默认关闭；开启后，识别出的文字会发送到 MyMemory 在线翻译服务，图片不会上传。详见 [PRIVACY.md](PRIVACY.md)。

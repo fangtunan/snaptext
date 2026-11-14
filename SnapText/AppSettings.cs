@@ -8,6 +8,10 @@ internal sealed class AppSettings
 
     public bool AccurateOcr { get; set; } = true;
 
+    public bool TranslateEnabled { get; set; }
+
+    public bool TranslationDisclosureAccepted { get; set; }
+
     public int WindowWidth { get; set; } = 880;
 
     public int WindowHeight { get; set; } = 690;

@@ -13,6 +13,12 @@ internal static class Program
             return;
         }
 
+        if (args.Length >= 3 && string.Equals(args[0], "--translate", StringComparison.OrdinalIgnoreCase))
+        {
+            RunTranslationProbe(args);
+            return;
+        }
+
         using var mutex = new Mutex(true, @"Local\SnapText.SingleInstance.v1", out bool createdNew);
         if (!createdNew)
         {
@@ -53,9 +59,42 @@ internal static class Program
         }
     }
 
-    private static void RunOcrProbe(string[] args)
+    private static void RunTranslationProbe(string[] args)
     {
         string input = args[1];
+        string output = args[2];
+        try
+        {
+            string text = File.ReadAllText(input, Encoding.UTF8);
+            TranslationDirection? direction = TranslationService.DetectDirection(text);
+            if (direction is null)
+            {
+                throw new InvalidOperationException("没有检测到可翻译的中英文。");
+            }
+
+            TranslationDirectionInfo info = TranslationService.Describe(direction.Value);
+            string translated = TranslationService.TranslateAsync(text, direction.Value)
+                .GetAwaiter().GetResult();
+            File.WriteAllText(output, translated, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            var meta = new StringBuilder();
+            meta.AppendLine("Provider=" + TranslationService.ProviderName);
+            meta.AppendLine("From=" + info.From);
+            meta.AppendLine("To=" + info.To);
+            meta.AppendLine("Chars=" + text.Length);
+            meta.AppendLine("TranslatedChars=" + translated.Length);
+            File.WriteAllText(output + ".meta.txt", meta.ToString(), new UTF8Encoding(true));
+            Environment.ExitCode = 0;
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("翻译测试模式失败", ex);
+            File.WriteAllText(output, "ERROR: " + ex, new UTF8Encoding(true));
+            Environment.ExitCode = 1;
+        }
+    }
+
+    private static void RunOcrProbe(string[] args)
+    {        string input = args[1];
         string output = args[2];
         OcrMode mode = OcrMode.Auto;
         if (args.Length >= 4)

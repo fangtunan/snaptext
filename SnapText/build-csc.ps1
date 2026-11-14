@@ -129,7 +129,9 @@ $runtimeConfig = @'
 Set-Content -LiteralPath (Join-Path $dist "SnapText.App.runtimeconfig.json") -Value $runtimeConfig -Encoding UTF8
 
 Write-Host "生成应用宿主..." -ForegroundColor Cyan
-Add-Type -Path $hostModel
+$hostModelLocal = Join-Path $env:TEMP "Microsoft.NET.HostModel.dll"
+Copy-Item -LiteralPath $hostModel -Destination $hostModelLocal -Force
+Add-Type -Path $hostModelLocal
 $outExe = Join-Path $dist "SnapText.exe"
 [Microsoft.NET.HostModel.AppHost.HostWriter]::CreateAppHost(
     $appHostTemplate,

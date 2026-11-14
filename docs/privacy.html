@@ -21,16 +21,25 @@
     <p>拾字 · SnapText 是一个本地文字识别工具。</p>
 
     <h2>收集的数据</h2>
-    <p>本应用不收集、不上传、不出售任何个人数据。</p>
+    <p>本应用不收集、不出售任何个人数据。OCR 识别完全在本机完成。</p>
     <ul>
       <li>截图和图片只在你的电脑内存中处理；</li>
-      <li>不向任何服务器发送图片、截图或识别结果；</li>
+      <li>不向任何服务器发送图片、截图或剪贴板图片；</li>
       <li>不包含用户行为统计、崩溃上报或广告 SDK；</li>
       <li>不读取与识别无关的文件。</li>
     </ul>
 
+    <h2>在线翻译（可选）</h2>
+    <p>翻译模式默认关闭。只有当你手动开启「翻译」并确认首次提示后，应用才会通过 MyMemory（<code>api.mymemory.translated.net</code>）翻译<strong>识别出的文字</strong>。</p>
+    <ul>
+      <li>不会上传图片、截图、剪贴板图片或文件名；</li>
+      <li>关闭「翻译」后不会再发送文字；</li>
+      <li>翻译失败时保留原文，错误信息不包含图片内容；</li>
+      <li>MyMemory 的可用性和数据处理受其自身条款约束。</li>
+    </ul>
+
     <h2>本地处理</h2>
-    <p>识别使用 PP-OCRv5 / ONNX Runtime 和 Windows.Media.Ocr，全部在本机运行。模型随应用分发，不需要联网下载。</p>
+    <p>OCR 使用 PP-OCRv5 / ONNX Runtime 和 Windows.Media.Ocr，全部在本机运行。模型随应用分发，不需要联网下载。</p>
 
     <h2>剪贴板</h2>
     <p>只有在你点击「从剪贴板」时，应用才读取剪贴板中的图片。剪贴板内容不会被上传或写入日志。</p>
@@ -44,7 +53,7 @@
     <h2>联系方式</h2>
     <p>通过 <a href="https://github.com/fangtunan/snaptext/issues">GitHub Issues</a> 联系。</p>
   </div>
-  <footer>Last updated: 2026-11-07</footer>
+  <footer>Last updated: 2026-11-14</footer>
 </main>
 </body>
 </html>

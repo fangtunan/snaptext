@@ -49,6 +49,23 @@ internal sealed class HeaderPanel : Panel
     private readonly Font _subtitleFont = Theme.UiFont(9.5f);
     private readonly Font _iconFont = Theme.UiFont(21f, FontStyle.Bold);
     private readonly Font _privacyFont = Theme.UiFont(8.4f, FontStyle.Bold);
+    private string _privacyText = "本地识别 · 不上传";
+
+    public string PrivacyText
+    {
+        get => _privacyText;
+        set
+        {
+            string next = string.IsNullOrWhiteSpace(value) ? "本地识别 · 不上传" : value;
+            if (string.Equals(_privacyText, next, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _privacyText = next;
+            Invalidate();
+        }
+    }
 
     public HeaderPanel()
     {
@@ -109,7 +126,7 @@ internal sealed class HeaderPanel : Panel
 
         if (Width > 600)
         {
-            string privacy = "本地识别 · 不上传";
+            string privacy = _privacyText;
             Size textSize = TextRenderer.MeasureText(privacy, _privacyFont, Size.Empty, TextFormatFlags.NoPadding);
             int pillW = textSize.Width + (int)Math.Round(40 * s);
             int pillH = (int)Math.Round(30 * s);
