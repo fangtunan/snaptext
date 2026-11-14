@@ -39,6 +39,10 @@ internal sealed class MainForm : Form
     private readonly Label _placeholder;
     private readonly Panel _divider;
     private readonly TextBox _resultBox;
+    private readonly Label _translationTitle;
+    private readonly TextBox _translationBox;
+    private readonly Label _translationPlaceholder;
+    private readonly Panel _verticalDivider;
     private readonly StatusDot _statusDot;
     private readonly Label _statusLabel;
     private readonly Label _metaLabel;
@@ -62,6 +66,8 @@ internal sealed class MainForm : Form
     private string _emptyHint = string.Empty;
     private string _baseStatusText = "就绪";
     private Color _baseStatusColor = Theme.TextMuted;
+    private string _translationHint = "译文将在这里显示";
+    private bool _translationSucceeded;
     private double _opacityBeforeCapture = 1d;
     private readonly List<Bitmap> _lastImages = new();
     private int _ocrGeneration;
@@ -204,13 +210,57 @@ internal sealed class MainForm : Form
             UseMnemonic = false,
             Cursor = Cursors.IBeam
         };
+        _translationTitle = new Label
+        {
+            Text = "译文",
+            AutoSize = false,
+            Font = Theme.UiFont(11.5f, FontStyle.Bold),
+            ForeColor = Theme.Text,
+            BackColor = Color.White,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Visible = false
+        };
+        _translationBox = new TextBox
+        {
+            Multiline = true,
+            WordWrap = true,
+            AcceptsReturn = true,
+            AcceptsTab = false,
+            ScrollBars = ScrollBars.Vertical,
+            BorderStyle = BorderStyle.None,
+            BackColor = Color.White,
+            ForeColor = Theme.Text,
+            Font = Theme.UiFont(11f),
+            HideSelection = false,
+            ShortcutsEnabled = true,
+            ReadOnly = true,
+            Visible = false
+        };
+        _translationPlaceholder = new Label
+        {
+            Text = _translationHint,
+            AutoSize = false,
+            BackColor = Color.White,
+            ForeColor = Theme.TextMuted,
+            Font = Theme.UiFont(10.2f),
+            TextAlign = ContentAlignment.TopLeft,
+            UseMnemonic = false,
+            Cursor = Cursors.IBeam,
+            Visible = false
+        };
+        _verticalDivider = new Panel { BackColor = Theme.Border, Visible = false };
         _card.Controls.Add(_resultBox);
+        _card.Controls.Add(_translationBox);
         _card.Controls.Add(_placeholder);
+        _card.Controls.Add(_translationPlaceholder);
         _card.Controls.Add(_divider);
+        _card.Controls.Add(_verticalDivider);
         _card.Controls.Add(_resultTitle);
         _card.Controls.Add(_sourceLabel);
         _card.Controls.Add(_charCount);
+        _card.Controls.Add(_translationTitle);
         _placeholder.BringToFront();
+        _translationPlaceholder.BringToFront();
 
         _bottom = new Panel { BackColor = Theme.Background };
         _content.Controls.Add(_bottom);
@@ -294,7 +344,7 @@ internal sealed class MainForm : Form
         _toolTip.SetToolTip(_captureButton, "从屏幕上框选区域或选择窗口");
         _toolTip.SetToolTip(_openButton, "打开一张图片并识别（Ctrl+O）");
         _toolTip.SetToolTip(_pasteButton, "识别剪贴板中的图片");
-        _toolTip.SetToolTip(_copyButton, "复制识别结果（Ctrl+C）");
+        _toolTip.SetToolTip(_copyButton, "复制当前结果（Ctrl+C）");
         _toolTip.SetToolTip(_clearButton, "清空当前结果");
         _toolTip.SetToolTip(_accurateCheck, OcrRouter.AccurateAvailable
             ? "使用 PP-OCRv5 本地高精度模型；首次识别会稍慢，关闭则使用 Windows OCR 快速模式。"
@@ -329,7 +379,9 @@ internal sealed class MainForm : Form
         _accurateCheck.CheckedChanged += (_, _) => OnQualityChanged();
         _translateCheck.CheckedChanged += (_, _) => OnTranslateChanged();
         _resultBox.TextChanged += (_, _) => OnResultTextChanged();
+        _translationBox.TextChanged += (_, _) => OnResultTextChanged();
         _placeholder.Click += (_, _) => _resultBox.Focus();
+        _translationPlaceholder.Click += (_, _) => _translationBox.Focus();
         FormClosing += OnFormClosing;
         Shown += OnFormShown;
         KeyDown += OnFormKeyDown;
@@ -560,10 +612,41 @@ internal sealed class MainForm : Form
 
     private void ApplyTranslationChrome()
     {
-        _header.PrivacyText = _translateCheck.Checked
+        bool online = _translateCheck.Checked;
+        _header.PrivacyText = online
             ? "OCR 本地 · 翻译联网"
             : "本地识别 · 不上传";
-        _resultTitle.Text = _translateCheck.Checked ? "识别 / 翻译结果" : "识别结果";
+        _resultTitle.Text = online ? "原文" : "识别结果";
+        SetTranslationVisible(online);
+        if (online && !_translationSucceeded)
+        {
+            _translationTitle.Text = "译文";
+            _translationHint = _resultBox.TextLength > 0
+                ? "正在翻译…"
+                : "译文将在这里显示";
+        }
+
+        UpdatePlaceholder();
+        if (_card.Width > 0)
+        {
+            LayoutCard();
+        }
+
+        OnResultTextChanged();
+    }
+
+    private void SetTranslationVisible(bool visible)
+    {
+        _translationTitle.Visible = visible;
+        _translationBox.Visible = visible;
+        _translationPlaceholder.Visible = visible && !_translationSucceeded && _translationBox.TextLength == 0;
+        _verticalDivider.Visible = visible;
+        _charCount.Visible = !visible;
+        if (!visible)
+        {
+            _translationSucceeded = false;
+        }
+
         if (_card.Width > 0)
         {
             LayoutCard();
@@ -914,6 +997,15 @@ internal sealed class MainForm : Form
         _card.Busy = true;
         _copyButton.Enabled = false;
         _statusDot.DotColor = Theme.Primary;
+        if (_translateCheck.Checked)
+        {
+            _translationSucceeded = false;
+            _translationBox.Clear();
+            _translationHint = "正在识别…";
+            _translationTitle.Text = "译文";
+            SetTranslationVisible(true);
+            UpdatePlaceholder();
+        }
         if (quality == OcrQuality.Accurate && !PpOcrService.IsInitialized)
         {
             _statusLabel.Text = "正在加载高精度模型（首次使用）…";
@@ -1052,6 +1144,11 @@ internal sealed class MainForm : Form
         CancellationToken cancellationToken)
     {
         string combined = JoinTexts(texts);
+        _translationSucceeded = false;
+        _translationBox.Clear();
+        _translationHint = _translateCheck.Checked ? "正在识别…" : "译文将在这里显示";
+        _translationTitle.Text = "译文";
+        SetTranslationVisible(_translateCheck.Checked);
         _resultBox.Text = combined;
         _resultBox.SelectionStart = 0;
         _resultBox.SelectionLength = 0;
@@ -1072,6 +1169,7 @@ internal sealed class MainForm : Form
         {
             _metaLabel.Text = baseMeta;
             _emptyHint = "未识别到文字\n\n可以尝试放大图片，或重新框选更清晰的区域。";
+            _translationHint = "未识别到文字";
             SetStatus("未识别到文字", Theme.Warning);
             ResetAccurateAvailability();
             UpdatePlaceholder();
@@ -1084,6 +1182,7 @@ internal sealed class MainForm : Form
             : null;
         if (direction is null)
         {
+            _translationHint = "未检测到可翻译的中英文";
             _metaLabel.Text = _translateCheck.Checked
                 ? $"{baseMeta} · 无可翻译文字"
                 : baseMeta;
@@ -1108,6 +1207,9 @@ internal sealed class MainForm : Form
         }
 
         TranslationDirectionInfo info = TranslationService.Describe(direction.Value);
+        _translationHint = "正在翻译…";
+        _translationTitle.Text = $"译文 · {info.Label}";
+        UpdatePlaceholder();
         SetStatus($"正在翻译（{info.ShortLabel}）…", Theme.Primary);
         _statusDot.DotColor = Theme.Primary;
         _metaLabel.Text = $"在线翻译 · {info.ShortLabel}…";
@@ -1120,10 +1222,11 @@ internal sealed class MainForm : Form
             cancellationToken.ThrowIfCancellationRequested();
             translationWatch.Stop();
 
-            _resultBox.Text = FormatBilingual(combined, translated, info);
-            _resultBox.SelectionStart = 0;
-            _resultBox.SelectionLength = 0;
-            _resultBox.ScrollToCaret();
+            _translationSucceeded = true;
+            _translationBox.Text = translated;
+            _translationBox.SelectionStart = 0;
+            _translationBox.SelectionLength = 0;
+            _translationBox.ScrollToCaret();
             _metaLabel.Text =
                 $"{engine}{confidence} · {info.ShortLabel} · {FormatDuration(duration + translationWatch.Elapsed)}";
             SetStatus("翻译完成", Theme.Success);
@@ -1136,10 +1239,9 @@ internal sealed class MainForm : Form
         {
             AppLog.Write("在线翻译失败", ex);
             translationWatch.Stop();
-            _resultBox.Text = combined + Environment.NewLine + Environment.NewLine + "翻译失败：" + ex.Message;
-            _resultBox.SelectionStart = 0;
-            _resultBox.SelectionLength = 0;
-            _resultBox.ScrollToCaret();
+            _translationSucceeded = false;
+            _translationBox.Text = "翻译失败：" + ex.Message;
+            _translationTitle.Text = "译文 · 失败";
             _metaLabel.Text = "在线翻译失败 · 已保留原文";
             SetStatus("翻译失败，已保留原文", Theme.Warning);
         }
@@ -1154,17 +1256,6 @@ internal sealed class MainForm : Form
         return duration.TotalSeconds >= 1
             ? $"{duration.TotalSeconds:0.0} 秒"
             : $"{(int)duration.TotalMilliseconds} ms";
-    }
-
-    private static string FormatBilingual(
-        string original,
-        string translated,
-        TranslationDirectionInfo info)
-    {
-        return "原文" + Environment.NewLine +
-               original + Environment.NewLine + Environment.NewLine +
-               $"译文 · {info.Label}" + Environment.NewLine +
-               translated;
     }
 
     private void ResetAccurateAvailability()
@@ -1188,16 +1279,30 @@ internal sealed class MainForm : Form
 
     private void OnResultTextChanged()
     {
+        bool split = _translateCheck.Checked;
         _placeholder.Visible = _resultBox.TextLength == 0;
-        _copyButton.Enabled = _resultBox.TextLength > 0 && !_card.Busy;
-        _clearButton.Enabled = _resultBox.TextLength > 0 || _lastImages.Count > 0;
-        _charCount.Text = _resultBox.TextLength > 0 ? $"{_resultBox.TextLength:N0} 字符" : string.Empty;
+        _translationPlaceholder.Text = _translationHint;
+        _translationPlaceholder.Visible = split && !_translationSucceeded && _translationBox.TextLength == 0;
+        _copyButton.Text = !split
+            ? "复制全文"
+            : (_translationSucceeded ? "复制译文" : "复制原文");
+        _copyButton.Enabled = !_card.Busy &&
+                              (_resultBox.TextLength > 0 ||
+                               (split && _translationSucceeded && _translationBox.TextLength > 0));
+        _clearButton.Enabled = _resultBox.TextLength > 0 || _translationBox.TextLength > 0 || _lastImages.Count > 0;
+        _charCount.Text = split || _resultBox.TextLength == 0
+            ? string.Empty
+            : $"{_resultBox.TextLength:N0} 字符";
     }
 
     private void UpdatePlaceholder()
     {
         _placeholder.Text = _emptyHint;
         _placeholder.Visible = _resultBox.TextLength == 0;
+        _translationPlaceholder.Text = _translationHint;
+        _translationPlaceholder.Visible = _translateCheck.Checked &&
+                                          !_translationSucceeded &&
+                                          _translationBox.TextLength == 0;
     }
 
     private string BuildDefaultEmptyHint()
@@ -1208,15 +1313,19 @@ internal sealed class MainForm : Form
 
     private void CopyResult()
     {
-        if (_resultBox.TextLength == 0)
+        bool copyTranslation = _translateCheck.Checked &&
+                               _translationSucceeded &&
+                               _translationBox.TextLength > 0;
+        string text = copyTranslation ? _translationBox.Text : _resultBox.Text;
+        if (text.Length == 0)
         {
             return;
         }
 
         try
         {
-            Clipboard.SetText(_resultBox.Text);
-            ShowToast("已复制到剪贴板", Theme.Success);
+            Clipboard.SetText(text);
+            ShowToast(copyTranslation ? "已复制译文" : "已复制识别结果", Theme.Success);
         }
         catch (ExternalException ex)
         {
@@ -1233,9 +1342,13 @@ internal sealed class MainForm : Form
         _ocrGeneration++;
         DisposeLastImages();
         _resultBox.Clear();
+        _translationBox.Clear();
+        _translationSucceeded = false;
+        _translationHint = "译文将在这里显示";
+        _translationTitle.Text = "译文";
         _sourceLabel.Text = string.Empty;
         _charCount.Text = string.Empty;
-        _metaLabel.Text = "本地 OCR · 无需联网";
+        _metaLabel.Text = _translateCheck.Checked ? "OCR 本地 · 翻译联网" : "本地 OCR · 无需联网";
         _emptyHint = BuildDefaultEmptyHint();
         UpdatePlaceholder();
         _card.Busy = false;
@@ -1460,14 +1573,50 @@ internal sealed class MainForm : Form
         int left = S(20);
         int top = S(15);
         int dividerY = S(45);
-        _resultTitle.Location = new Point(left, top);
-        _sourceLabel.SetBounds(left + _resultTitle.PreferredWidth + S(10), top, Math.Max(S(40), w - left * 2 - _resultTitle.PreferredWidth - S(150)), S(24));
-        _charCount.SetBounds(w - S(20) - S(130), top, S(130), S(24));
-        _divider.SetBounds(left, dividerY, w - left * 2, 1);
+        bool split = _translateCheck.Checked;
+        _translationTitle.Visible = split;
+        _translationBox.Visible = split;
+        _verticalDivider.Visible = split;
+        _charCount.Visible = !split;
 
-        int textTop = dividerY + S(7);
-        _resultBox.SetBounds(left + S(2), textTop, w - left * 2 - S(4), Math.Max(S(40), h - textTop - S(12)));
-        _placeholder.SetBounds(left + S(5), textTop + S(6), w - left * 2 - S(10), Math.Max(S(40), h - textTop - S(22)));
+        _divider.SetBounds(left, dividerY, w - left * 2, 1);
+        _resultTitle.Location = new Point(left, top);
+        if (!split)
+        {
+            _sourceLabel.SetBounds(
+                left + _resultTitle.PreferredWidth + S(10), top,
+                Math.Max(S(40), w - left * 2 - _resultTitle.PreferredWidth - S(150)), S(24));
+            _charCount.SetBounds(w - S(20) - S(130), top, S(130), S(24));
+
+            int textTop = dividerY + S(7);
+            _resultBox.SetBounds(left + S(2), textTop, w - left * 2 - S(4),
+                Math.Max(S(40), h - textTop - S(12)));
+            _placeholder.SetBounds(left + S(5), textTop + S(6), w - left * 2 - S(10),
+                Math.Max(S(40), h - textTop - S(22)));
+            _translationPlaceholder.Visible = false;
+            return;
+        }
+
+        int contentWidth = w - left * 2;
+        int gap = S(18);
+        int leftWidth = (int)(contentWidth * 0.48);
+        int rightX = left + leftWidth + gap;
+        int rightWidth = Math.Max(S(80), w - left - rightX);
+        int textTop2 = dividerY + S(7);
+        _sourceLabel.SetBounds(
+            left + _resultTitle.PreferredWidth + S(10), top,
+            Math.Max(S(40), leftWidth - _resultTitle.PreferredWidth - S(18)), S(24));
+        _translationTitle.SetBounds(rightX, top, rightWidth, S(24));
+        _verticalDivider.SetBounds(rightX - gap / 2, dividerY + 1, 1, Math.Max(S(40), h - dividerY - S(12)));
+        _resultBox.SetBounds(left + S(2), textTop2, leftWidth - S(4),
+            Math.Max(S(40), h - textTop2 - S(12)));
+        _translationBox.SetBounds(rightX + S(2), textTop2, rightWidth - S(4),
+            Math.Max(S(40), h - textTop2 - S(12)));
+        _placeholder.SetBounds(left + S(5), textTop2 + S(6), leftWidth - S(10),
+            Math.Max(S(40), h - textTop2 - S(22)));
+        _translationPlaceholder.SetBounds(rightX + S(5), textTop2 + S(6), rightWidth - S(10),
+            Math.Max(S(40), h - textTop2 - S(22)));
+        _translationPlaceholder.Visible = !_translationSucceeded && _translationBox.TextLength == 0;
     }
 
     private void LayoutBottom()
