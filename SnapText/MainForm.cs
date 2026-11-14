@@ -266,11 +266,12 @@ internal sealed class MainForm : Form
             ColumnHeadersVisible = false,
             GridColor = Theme.Border,
             MultiSelect = true,
-            ReadOnly = true,
+            ReadOnly = false,
             RowHeadersVisible = false,
             RowTemplate = { Height = S(34) },
             ScrollBars = ScrollBars.Vertical,
             SelectionMode = DataGridViewSelectionMode.CellSelect,
+            EditMode = DataGridViewEditMode.EditOnKeystrokeOrF2,
             Visible = false
         };
         _bilingualGrid.DefaultCellStyle = new DataGridViewCellStyle
@@ -287,7 +288,7 @@ internal sealed class MainForm : Form
         {
             Name = "Original",
             FillWeight = 48,
-            ReadOnly = true,
+            ReadOnly = false,
             SortMode = DataGridViewColumnSortMode.NotSortable
         };
         var dividerColumn = new DataGridViewTextBoxColumn
@@ -310,7 +311,7 @@ internal sealed class MainForm : Form
         {
             Name = "Translation",
             FillWeight = 52,
-            ReadOnly = true,
+            ReadOnly = false,
             SortMode = DataGridViewColumnSortMode.NotSortable
         };
         _bilingualGrid.Columns.AddRange(originalColumn, dividerColumn, translationColumn);
@@ -421,6 +422,8 @@ internal sealed class MainForm : Form
             : "未找到高精度模型，当前只能使用 Windows OCR。");
         _toolTip.SetToolTip(_translateCheck,
             "自动判断中英文方向并在线翻译；识别文字会发送到 MyMemory，图片不会上传。");
+        _toolTip.SetToolTip(_bilingualGrid,
+            "双击单元格编辑；修改会覆盖当前识别结果，复制时使用编辑后的内容。");
 
         _toastTimer = new System.Windows.Forms.Timer { Interval = 2600 };
         _toastTimer.Tick += (_, _) =>
@@ -450,6 +453,7 @@ internal sealed class MainForm : Form
         _translateCheck.CheckedChanged += (_, _) => OnTranslateChanged();
         _resultBox.TextChanged += (_, _) => OnResultTextChanged();
         _translationBox.TextChanged += (_, _) => OnResultTextChanged();
+        _bilingualGrid.CellEndEdit += OnBilingualCellEndEdit;
         _placeholder.Click += (_, _) => _resultBox.Focus();
         _translationPlaceholder.Click += (_, _) => _translationBox.Focus();
         FormClosing += OnFormClosing;
@@ -1409,6 +1413,39 @@ internal sealed class MainForm : Form
         }
 
         return false;
+    }
+
+    private void OnBilingualCellEndEdit(object? sender, DataGridViewCellEventArgs e)
+    {
+        if (e.RowIndex < 0 || e.ColumnIndex < 0)
+        {
+            return;
+        }
+
+        if (e.ColumnIndex == 0)
+        {
+            string text = string.Join(
+                Environment.NewLine,
+                _bilingualGrid.Rows
+                    .Cast<DataGridViewRow>()
+                    .Select(row => row.Cells[0].Value?.ToString() ?? string.Empty));
+            _resultBox.Text = text;
+            if (!_sourceLabel.Text.EndsWith(" · 已编辑", StringComparison.Ordinal))
+            {
+                _sourceLabel.Text += " · 已编辑";
+            }
+
+            SetStatus("已更新识别结果", Theme.Success);
+        }
+        else
+        {
+            SetStatus("已更新译文", Theme.Success);
+        }
+
+        _translationSucceeded = HasTranslatedRows();
+        _bilingualGrid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCellsExceptHeaders);
+        UpdatePlaceholder();
+        OnResultTextChanged();
     }
 
     private void UpdatePlaceholder()
